@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShareView - Premium P2P Learning</title>
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg-color: #f3f4f6;
+      --panel-bg: #ffffff;
+      --text-color: #1f2937;
+      --border-color: #e5e7eb;
+      --chat-bg: #f9fafb;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Layout */
+    .sidebar {
+      width: 300px;
+      background-color: var(--panel-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+    }
+
+    .main-content {
+      flex: 1;
+      position: relative;
+      background-color: #000;
+      /* Video background */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Sidebar Sections */
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-color);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-panel {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .participant-section {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .chat-section {
+      height: 35%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--chat-bg);
+    }
+
+    /* Components */
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary-color);
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-primary:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: #fff;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: #f3f4f6;
+    }
+
+    /* Lists */
+    h4 {
+      margin: 0 0 10px 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #6b7280;
+      letter-spacing: 0.05em;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      padding: 8px 12px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+    }
+
+    li::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+    }
+
+    /* Chat */
+    #chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    .chat-input-area {
+      padding: 10px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+      background: white;
+    }
+
+    /* Video Area */
+    #video-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      /* 화면 비율 유지 */
+    }
+
+    #exit-fullscreen-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+
+    .status-active {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    /* Drag and Drop Overlay */
+    .chat-section {
+      position: relative;
+    }
+
+    .drop-zone-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(79, 70, 229, 0.1);
+      border: 2px dashed var(--primary-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+      /* Allows dropping through */
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .chat-section.drag-over .drop-zone-overlay {
+      opacity: 1;
+    }
+
+    .drop-message {
+      background: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      color: var(--primary-color);
+      font-weight: bold;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1 class="logo">📡 ShareView</h1>
+    </div>
+
+    <div class="control-panel">
+      <h4>My Connection</h4>
+      <div class="input-group">
+        <input type="text" id="custom-id-input" placeholder="Enter My ID (Optional)">
+        <button class="btn-primary" onclick="initializePeer()">Set</button>
+      </div>
+      <div style="margin-bottom: 15px; font-size: 13px;">
+        ID: <span id="my-id" class="status-badge">Not Set</span>
+      </div>
+
+      <h4>Host Controls</h4>
+      <button id="start-share-btn" class="btn-primary" onclick="startScreenShare()" disabled style="width: 100%;">
+        🎥 Start Sharing (with Audio)
+      </button>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+
+      <h4>Join Session</h4>
+      <div class="input-group">
+        <input type="text" id="friend-id" placeholder="Enter Host ID">
+        <button class="btn-secondary" onclick="connectToPeer()">Connect</button>
+      </div>
+    </div>
+
+    <div class="participant-section">
+      <h4>Participants</h4>
+      <ul id="participant-list">
+        <!-- Participants will be added here -->
+        <li style="color: #9ca3af; background: none; padding-left: 0;">Waiting for connections...</li>
+      </ul>
+    </div>
+
+    <div class="chat-section">
+      <div style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); background: white;">
+        <h4>Chat</h4>
+      </div>
+      <div id="drop-zone" class="drop-zone-overlay">
+        <div class="drop-message">📂 Drop files to share</div>
+      </div>
+      <div id="chat-messages">
+        <!-- Chat messages -->
+        <div style="color: #9ca3af; text-align: center; margin-top: 20px;">No messages yet</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message..."
+          onkeypress="if(event.key==='Enter') sendChatMessage()">
+        <button class="btn-primary" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div id="video-container">
+      <video id="screen-preview" autoplay playsinline></video>
+      <button id="exit-fullscreen-btn" onclick="toggleFullScreen()" style="display: none;">❌ Exit Fullscreen</button>
+
+      <!-- Placeholder when no video -->
+      <div
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #4b5563; pointer-events: none;">
+        <h2 style="margin-bottom: 10px;">Ready to Connect</h2>
+        <p>Set your ID and start sharing, or connect to a host.</p>
+      </div>
+    </div>
+
+    <!-- Fullscreen Toggle Button (Floating) -->
+    <button onclick="toggleFullScreen()"
+      style="position: absolute; bottom: 20px; right: 20px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">
+      ⛶ Fullscreen
+    </button>
+  </div>
+
+  <!-- PeerJS Library -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- App Logic -->
+  <script src="screenShare.js"></script>
+</body>
+
+</html>
