@@ -11,6 +11,7 @@ const translations = {
     idError: 'ID 오류',
     hostControls: '호스트 설정',
     startSharingBtn: '화면 공유 시작 (오디오 포함)',
+    stopSharingBtn: '화면 공유 중지',
     joinSession: '세션 참가',
     placeholderHostId: '호스트 ID 입력',
     connectBtn: '연결',
@@ -41,6 +42,7 @@ const translations = {
     welcomeMessage: '세션에 오신 것을 환영합니다!',
     sendingFile: '파일 전송 중: {name} ({size})...',
     fileSentSuccess: '파일 전송 완료.',
+    fileTooLarge: '파일이 너무 큽니다. 최대 {max}까지 전송할 수 있습니다.',
     startedSharingFile: '파일 공유 시작: <strong>{name}</strong>',
     downloadLink: '💾 {name} 다운로드',
     sharedFile: '파일을 공유했습니다:<br>{link}',
@@ -58,6 +60,7 @@ const translations = {
     idError: 'ID Error',
     hostControls: 'Host Controls',
     startSharingBtn: 'Start Sharing (with Audio)',
+    stopSharingBtn: 'Stop Sharing',
     joinSession: 'Join Session',
     placeholderHostId: 'Enter Host ID',
     connectBtn: 'Connect',
@@ -88,6 +91,7 @@ const translations = {
     welcomeMessage: 'Welcome to the session!',
     sendingFile: 'Sending file: {name} ({size})...',
     fileSentSuccess: 'File sent successfully.',
+    fileTooLarge: 'File is too large. Maximum size is {max}.',
     startedSharingFile: 'Started sharing file: <strong>{name}</strong>',
     downloadLink: '💾 Download {name}',
     sharedFile: 'Shared a file:<br>{link}',
@@ -101,7 +105,8 @@ let currentLang = localStorage.getItem('lang') || 'ko';
 function t(key, vars) {
   let str = (translations[currentLang] && translations[currentLang][key]) || translations.ko[key] || key;
   if (vars) {
-    Object.keys(vars).forEach((k) => { str = str.replace(`{${k}}`, vars[k]); });
+    // 함수로 치환해야 파일명 등에 들어간 "$&", "$'" 같은 특수 패턴이 해석되지 않음
+    Object.keys(vars).forEach((k) => { str = str.replace(`{${k}}`, () => vars[k]); });
   }
   return str;
 }

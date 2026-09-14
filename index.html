@@ -182,6 +182,12 @@
       font-size: 14px;
     }
 
+    #chat-messages a {
+      color: var(--primary-color);
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
     .chat-input-area {
       padding: 10px;
       border-top: 1px solid var(--border-color);
@@ -323,6 +329,7 @@
       <button id="start-share-btn" class="btn-primary" onclick="startScreenShare()" disabled style="width: 100%;" data-i18n="startSharingBtn">
         Start Sharing (with Audio)
       </button>
+      <button id="stop-share-btn" class="btn-secondary" onclick="stopScreenShare()" hidden style="width: 100%;" data-i18n="stopSharingBtn">Stop Sharing</button>
 
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
 
@@ -354,7 +361,7 @@
       </div>
       <div id="chat-messages">
         <!-- Chat messages -->
-        <div style="color: #9ca3af; text-align: center; margin-top: 20px;" data-i18n="noMessagesYet">No messages yet</div>
+        <div id="chat-empty" style="color: #9ca3af; text-align: center; margin-top: 20px;" data-i18n="noMessagesYet">No messages yet</div>
       </div>
       <div class="chat-input-area">
         <input type="text" id="chat-input" placeholder="Type a message..." data-i18n-placeholder="placeholderChat"

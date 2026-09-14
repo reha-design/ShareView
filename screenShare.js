@@ -3,6 +3,7 @@ let peer = null;
 let localStream = null;
 let dataConnections = []; // 연결된 데이터 채널 목록 (Host용)
 let myDataConnection = null; // 호스트와 연결된 데이터 채널 (Viewer용)
+let mediaCalls = []; // Host가 유지 중인 영상 통화 목록 (공유 중지 시 일괄 종료)
 let receivedBuffers = {}; // 파일 수신 버퍼: { senderId: { meta: {}, chunks: [] } }
 
 // PeerJS 초기화 및 ID 설정 함수
@@ -67,18 +68,16 @@ function initializePeer() {
         }
     });
 
-    // 누군가 나에게 전화를 걸었을 때 (Viewer -> Host)
     peer.on('call', (call) => {
-        console.log('Incoming call...');
-        // 내가 화면 공유 중이라면 그 스트림으로 응답
-        if (localStream) {
-            console.log('Answering with local stream.');
-            call.answer(localStream);
-        } else {
-            // 공유 중이 아닐 때 전화가 오면? 일단 받되 스트림 없이?
-            console.log('No local stream enabled yet. Answering without stream.');
-            call.answer(); // 스트림 없이 받음
+        // Host가 공유를 시작하며 걸어온 호출 (Viewer가 공유 시작 전에 접속해 있던 경우)
+        if (call.metadata && call.metadata.type === 'share') {
+            call.answer();
+            attachViewerCall(call);
+            return;
         }
+        // Viewer -> Host 호출: 공유 중이면 스트림으로 응답, 아니면 스트림 없이 받아두고 공유 시작 시 다시 걸어줌
+        call.answer(localStream || undefined);
+        trackCall(call);
     });
 
     // 데이터 채널 연결 요청 (Viewer -> Host)
@@ -95,7 +94,7 @@ function initializePeer() {
         });
 
         conn.on('data', (data) => {
-            handleIncomingData(data);
+            handleIncomingData(data, conn.peer);
         });
 
         conn.on('close', () => {
@@ -153,16 +152,15 @@ async function startScreenShare() {
         videoElement.muted = true; // 내 화면은 소리 끔
         updateVideoPlaceholder();
         registerAsHost();
+        setSharingUI(true);
 
-        // 화면 공유 중지 시 처리
-        localStream.getVideoTracks()[0].onended = () => {
-            console.log('화면 공유가 중단되었습니다.');
-            videoElement.srcObject = null;
-            localStream = null;
-            updateVideoPlaceholder();
-            unregisterAsHost();
-            // 필요하다면 모든 연결 끊기 로직 추가 가능
-        };
+        // 공유 시작 전에 이미 접속해 있던 Viewer들에게도 화면 전송
+        dataConnections.forEach(conn => {
+            trackCall(peer.call(conn.peer, localStream, { metadata: { type: 'share' } }));
+        });
+
+        // 브라우저 자체 "공유 중지" 버튼으로 멈췄을 때
+        localStream.getVideoTracks()[0].onended = stopScreenShare;
 
         console.log("화면 공유 시작됨. 다른 사용자가 내 ID로 연결하면 이 화면을 볼 수 있습니다.");
 
@@ -171,11 +169,43 @@ async function startScreenShare() {
     }
 }
 
+// 1-1. Host: 화면 공유 중지 (Viewer들의 영상 통화도 함께 종료)
+function stopScreenShare() {
+    if (!localStream) return;
+    localStream.getTracks().forEach(track => track.stop()); // stop()은 onended를 발생시키지 않음
+    localStream = null;
+
+    mediaCalls.forEach(call => call.close());
+    mediaCalls = [];
+
+    document.getElementById('screen-preview').srcObject = null;
+    updateVideoPlaceholder();
+    unregisterAsHost();
+    setSharingUI(false);
+}
+
+function setSharingUI(sharing) {
+    document.getElementById('start-share-btn').hidden = sharing;
+    document.getElementById('stop-share-btn').hidden = !sharing;
+}
+
+function trackCall(call) {
+    mediaCalls.push(call);
+    call.on('close', () => { mediaCalls = mediaCalls.filter(c => c !== call); });
+}
+
 // 2. Viewer: 친구에게 연결하여 화면 보기
 function connectToPeer() {
     const friendId = document.getElementById('friend-id').value;
     if (!friendId) {
         alert(t('enterFriendId'));
+        return;
+    }
+
+    // 내 ID를 설정하지 않았으면 랜덤 ID로 먼저 접속한 뒤 이어서 연결
+    if (!peer || peer.destroyed) {
+        initializePeer();
+        peer.once('open', connectToPeer);
         return;
     }
 
@@ -208,29 +238,7 @@ function connectToPeer() {
         return;
     }
 
-    call.on('stream', (remoteStream) => {
-        console.log("Received remote stream!");
-        const videoElement = document.getElementById('screen-preview');
-        videoElement.srcObject = remoteStream;
-        videoElement.muted = false; // 상대방 소리는 들어야 함
-        videoElement.play().catch(e => console.error("Autoplay failed:", e));
-        updateVideoPlaceholder();
-    });
-
-    call.on('close', () => {
-        console.log("연결이 종료되었습니다.");
-        document.getElementById('screen-preview').srcObject = null;
-        updateVideoPlaceholder();
-        // 연결 끊기면 전체화면도 나가기
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
-        }
-    });
-
-    call.on('error', (err) => {
-        console.error("Call error:", err);
-        alert(t('callError'));
-    });
+    attachViewerCall(call);
 
     // 데이터 채널 연결 (채팅/참여자용)
     const conn = peer.connect(friendId);
@@ -246,8 +254,44 @@ function connectToPeer() {
         handleIncomingData(data);
     });
 
+    conn.on('close', () => {
+        myDataConnection = null;
+        renderParticipants([]);
+    });
+
     conn.on('error', (err) => {
         console.error("Data connection error:", err);
+    });
+}
+
+// Viewer: Host 영상 통화 수신/종료 처리 (직접 건 통화, Host가 걸어온 통화 공통)
+function attachViewerCall(call) {
+    const videoElement = document.getElementById('screen-preview');
+    let shownStream = null; // PeerJS는 close 전에 call.remoteStream을 비우므로 직접 기억
+
+    call.on('stream', (remoteStream) => {
+        console.log("Received remote stream!");
+        shownStream = remoteStream;
+        videoElement.srcObject = remoteStream;
+        videoElement.muted = false; // 상대방 소리는 들어야 함
+        videoElement.play().catch(e => console.error("Autoplay failed:", e));
+        updateVideoPlaceholder();
+    });
+
+    call.on('close', () => {
+        // 스트림 없이 받아둔 통화가 닫힐 때 현재 보고 있는 화면까지 지우지 않도록
+        if (videoElement.srcObject !== shownStream) return;
+        console.log("연결이 종료되었습니다.");
+        videoElement.srcObject = null;
+        updateVideoPlaceholder();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    });
+
+    call.on('error', (err) => {
+        console.error("Call error:", err);
+        alert(t('callError'));
     });
 }
 
@@ -329,11 +373,7 @@ async function refreshHostList() {
 
         listEl.innerHTML = '';
         if (hosts.length === 0) {
-            const li = document.createElement('li');
-            li.style.cssText = 'color:#9ca3af;background:none;padding-left:0;';
-            li.setAttribute('data-i18n', 'noHostsFound');
-            li.textContent = t('noHostsFound');
-            listEl.appendChild(li);
+            listEl.appendChild(placeholderItem('noHostsFound'));
             return;
         }
 
@@ -360,15 +400,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 4. Data Channel Logic (Chat & Participants)
 
-// 데이터 수신 처리
-function handleIncomingData(data) {
+// 데이터 수신 처리 (fromPeer: Host가 받은 경우 보낸 Viewer의 ID)
+function handleIncomingData(data, fromPeer) {
     if (data.type === 'chat') {
         appendChatMessage(data.sender, data.message);
 
-        // Host라면 다른 모든 Viewer에게 브로드캐스트 (Echo)
+        // Host라면 보낸 사람을 제외한 다른 Viewer들에게 전달 (보낸 사람은 이미 로컬에 표시함)
         if (dataConnections.length > 0) {
-            broadcastData(data);
+            broadcastData(data, fromPeer);
         }
+    } else if (data.type === 'participants' && Array.isArray(data.list)) {
+        renderParticipants(data.list);
     } else if (data.type === 'file-start') {
         handleFileStart(data.sender, data.meta);
     } else if (data.type === 'file-chunk') {
@@ -378,11 +420,10 @@ function handleIncomingData(data) {
     }
 }
 
-// 데이터 브로드캐스트 (Host -> All Viewers)
-function broadcastData(data) {
+// 데이터 브로드캐스트 (Host -> All Viewers, exceptPeer는 제외)
+function broadcastData(data, exceptPeer) {
     dataConnections.forEach(conn => {
-        // 보낸 사람에게는 다시 보내지 않음 (선택 사항)
-        if (conn.open) {
+        if (conn.open && conn.peer !== exceptPeer) {
             conn.send(data);
         }
     });
@@ -413,29 +454,59 @@ function sendChatMessage() {
     input.value = '';
 }
 
-// UI: 채팅 메시지 추가
-function appendChatMessage(sender, message) {
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 텍스트 속 http(s) 링크를 새 탭으로 여는 <a>로 변환 (나머지는 이스케이프). 끝의 문장부호는 링크에서 제외
+function linkify(text) {
+    return String(text).split(/(https?:\/\/[^\s]*[^\s.,!?)])/g).map((part, i) =>
+        i % 2
+            ? `<a href="${escapeHtml(part)}" target="_blank" rel="noopener noreferrer">${escapeHtml(part)}</a>`
+            : escapeHtml(part)
+    ).join('');
+}
+
+// UI: 채팅 메시지 추가. 상대방이 보낸 값은 반드시 이스케이프 (isHtml은 로컬에서 만든 안전한 HTML일 때만)
+function appendChatMessage(sender, message, isHtml = false) {
     const chatBox = document.getElementById('chat-messages');
-    if (!chatBox) return; // UI 아직 없으면 무시
+    document.getElementById('chat-empty')?.remove();
 
     const displaySender = sender === 'System' ? t('senderSystem') : sender === 'Me' ? t('senderMe') : sender;
     const div = document.createElement('div');
-    div.innerHTML = `<strong>${displaySender}:</strong> ${message}`;
+    div.innerHTML = `<strong>${escapeHtml(displaySender)}:</strong> ${isHtml ? message : linkify(message)}`;
     div.style.marginBottom = "5px";
     div.style.fontSize = "13px";
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
 }
 
-// UI: 참여자 목록 업데이트 (Host Only for now)
-function updateParticipantList() {
-    const listEl = document.getElementById('participant-list');
-    if (!listEl) return;
+function placeholderItem(key) {
+    const li = document.createElement('li');
+    li.style.cssText = 'color:#9ca3af;background:none;padding-left:0;';
+    li.setAttribute('data-i18n', key);
+    li.textContent = t(key);
+    return li;
+}
 
+// UI: 참여자 목록 (Host가 갱신 후 모든 Viewer에게도 전송)
+function updateParticipantList() {
+    const ids = dataConnections.map(conn => conn.peer);
+    renderParticipants(ids);
+    broadcastData({ type: 'participants', list: ids });
+}
+
+function renderParticipants(ids) {
+    const listEl = document.getElementById('participant-list');
     listEl.innerHTML = '';
-    dataConnections.forEach(conn => {
+    if (ids.length === 0) {
+        listEl.appendChild(placeholderItem('waitingConnections'));
+        return;
+    }
+    ids.forEach(id => {
         const li = document.createElement('li');
-        li.innerText = conn.peer;
+        li.textContent = id;
         listEl.appendChild(li);
     });
 }
@@ -480,10 +551,27 @@ function setupDragAndDrop() {
 }
 
 const CHUNK_SIZE = 16384; // 16KB
+// ponytail: 수신측이 파일 전체를 메모리에 모았다가 Blob으로 만들므로 상한을 둠. 더 큰 파일이 필요하면 스트리밍 저장(File System Access API) 필요
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
+
+// 채팅 메시지 끝에 진행률(%)을 붙이고, 갱신 함수를 돌려줌
+function addProgress(div) {
+    const span = document.createElement('span');
+    div.appendChild(span);
+    return (done, total) => {
+        const text = ` ${total ? Math.floor(done / total * 100) : 100}%`;
+        if (span.textContent !== text) span.textContent = text;
+    };
+}
 
 async function sendFile(file) {
+    if (file.size > MAX_FILE_SIZE) {
+        alert(t('fileTooLarge', { max: formatBytes(MAX_FILE_SIZE) }));
+        return;
+    }
+
     const myId = peer ? peer.id : 'Me';
-    appendChatMessage('System', t('sendingFile', { name: file.name, size: formatBytes(file.size) }));
+    const progress = addProgress(appendChatMessage('System', t('sendingFile', { name: file.name, size: formatBytes(file.size) })));
 
     // 1. Send File Metadata
     const metaData = {
@@ -515,8 +603,12 @@ async function sendFile(file) {
         offset += CHUNK_SIZE;
 
         // 간단한 흐름 제어 (너무 빠르면 끊길 수 있음 -> await sleep?)
-        if (i % 100 === 0) await new Promise(r => setTimeout(r, 10));
+        if (i % 100 === 0) {
+            progress(i, totalChunks);
+            await new Promise(r => setTimeout(r, 10));
+        }
     }
+    progress(totalChunks, totalChunks);
 
     // 3. Send End Signal
     const endData = {
@@ -545,9 +637,9 @@ function handleFileStart(sender, meta) {
     receivedBuffers[sender] = {
         meta: meta,
         chunks: [],
-        receivedSize: 0
+        receivedSize: 0,
+        progress: addProgress(appendChatMessage(sender, t('startedSharingFile', { name: escapeHtml(meta.name) }), true))
     };
-    appendChatMessage(sender, t('startedSharingFile', { name: meta.name }));
 }
 
 function handleFileChunk(sender, buffer) {
@@ -556,6 +648,13 @@ function handleFileChunk(sender, buffer) {
 
     context.chunks.push(buffer);
     context.receivedSize += buffer.byteLength;
+
+    // 상대가 보낸 크기 정보는 신뢰할 수 없으므로 실제 받은 양으로 상한 검사
+    if (context.receivedSize > MAX_FILE_SIZE) {
+        delete receivedBuffers[sender];
+        return;
+    }
+    context.progress(context.receivedSize, context.meta.size);
 }
 
 function handleFileEnd(sender) {
@@ -565,9 +664,10 @@ function handleFileEnd(sender) {
     const blob = new Blob(context.chunks, { type: context.meta.type });
     const url = URL.createObjectURL(blob);
 
-    const downloadLink = `<a href="${url}" download="${context.meta.name}" style="color: #4f46e5; text-decoration: underline;">${t('downloadLink', { name: context.meta.name })}</a> (${formatBytes(context.meta.size)})`;
+    const safeName = escapeHtml(context.meta.name);
+    const downloadLink = `<a href="${url}" download="${safeName}" style="color: #4f46e5; text-decoration: underline;">${t('downloadLink', { name: safeName })}</a> (${formatBytes(context.meta.size)})`;
 
-    appendChatMessage(sender, t('sharedFile', { link: downloadLink }));
+    appendChatMessage(sender, t('sharedFile', { link: downloadLink }), true);
 
     // Clean up
     delete receivedBuffers[sender];
