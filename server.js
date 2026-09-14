@@ -34,3 +34,19 @@ peerServer.on('connection', (client) => {
 peerServer.on('disconnect', (client) => {
     console.log(`[PeerJS] Client disconnected: ${client.getId()}`);
 });
+
+// 5. 에러 핸들링 (미처리 에러로 인한 전체 프로세스 다운 방지)
+// EventEmitter는 'error' 리스너가 없으면 Node 프로세스를 강제 종료시킴.
+// 시그널링 서버와 웹서버가 같은 프로세스에서 돌기 때문에, 이게 없으면
+// 참여자 한 명의 연결 에러만으로도 모든 사람이 동시에 끊길 수 있음.
+peerServer.on('error', (err) => {
+    console.error('[PeerJS] Signaling server error (recovered):', err.message);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('[ShareView] Uncaught exception (server kept alive):', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[ShareView] Unhandled promise rejection (server kept alive):', reason);
+});
