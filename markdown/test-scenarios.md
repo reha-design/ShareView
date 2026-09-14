@@ -1,14 +1,16 @@
 # ShareView 테스트 시나리오
 
 대상: `index.html` + `screenShare.js` (PeerJS 기반 P2P 화면공유/채팅/파일공유)
-사전 준비: `npm start` 로 로컬 서버(포트 3000, 시그널링 9000) 실행, 실제 화면 공유 테스트는 getDisplayMedia를 지원하는 일반 브라우저(Chrome/Edge) 2개 창(Host/Viewer) 또는 PC 2대 필요.
+사전 준비: `npm start` 로 로컬 서버(HTTPS 포트 3000, 시그널링도 같은 포트) 실행, 실제 화면 공유 테스트는 getDisplayMedia를 지원하는 일반 브라우저(Chrome/Edge) 2개 창(Host/Viewer) 또는 PC 2대 필요.
 
 ## 1. 서버/초기 로딩
 
 | # | 시나리오 | 절차 | 기대 결과 |
 |---|---|---|---|
-| 1-1 | 서버 정상 기동 | `npm start` 실행 | 콘솔에 `Web Server: http://localhost:3000` 출력, 프로세스 유지 |
-| 1-2 | 페이지 최초 로드 | `http://localhost:3000` 접속 | 좌측 컨트롤 패널 + 우측 "Ready to Connect" 플레이스홀더 노출, ID: Not Set |
+| 1-1 | 서버 정상 기동 | `npm start` 실행 | 콘솔에 `https://localhost:3000`과 다른 PC용 `https://<IP>:3000` 주소 출력, 프로세스 유지 |
+| 1-2 | 페이지 최초 로드 | `https://localhost:3000` 접속 (인증서 경고 시 "계속 진행") | 좌측 컨트롤 패널 + 우측 "Ready to Connect" 플레이스홀더 노출, ID: Not Set |
+| 1-3 | 다른 PC에서 호스트 | 다른 PC에서 `https://<서버-IP>:3000` 접속 → ID 설정 → 화면 공유 시작 | 화면 선택 창이 뜨고 공유가 시작됨 (HTTP였을 때는 불가능했던 동작) |
+| 1-4 | 인증서 개인키 비노출 | `https://localhost:3000/.certs/key.pem` 접속 | 404 (`.git` 등 점(.) 폴더도 동일) |
 
 ## 2. ID 설정 (Host/Viewer 공통)
 

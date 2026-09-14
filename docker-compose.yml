@@ -6,8 +6,7 @@ services:
     image: shareview-local
     container_name: shareview-container
     ports:
-      - "3000:3000" # Web Server
-      - "9000:9000" # PeerJS Signaling Server
+      - "3000:3000" # HTTPS 웹 서버 + PeerJS 시그널링
     restart: unless-stopped
     # 필요하다면 환경 변수 추가
     # environment:

@@ -35,7 +35,7 @@ function initializePeer() {
         console.log("Detected Local Server Environment. Using Local Signaling Server.");
         options = {
             host: window.location.hostname, // 현재 접속한 IP (예: 192.168.0.10)
-            port: 9000,                     // server.js에서 설정한 PeerJS 포트
+            port: window.location.port,     // 시그널링도 웹 서버와 같은 HTTPS 포트에서 동작 (wss는 페이지 프로토콜 따라 자동)
             path: '/peerjs',
             debug: 2
         };

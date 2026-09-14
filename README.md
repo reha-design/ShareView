@@ -22,8 +22,16 @@
 npm install
 npm start
 ```
-*   접속 주소: `http://localhost:3000` (호스트 PC)
-*   같은 네트워크의 다른 PC: `http://<호스트-IP>:3000`
+*   접속 주소: `https://localhost:3000` (서버 PC)
+*   같은 네트워크의 다른 PC: `https://<서버-IP>:3000` (서버 콘솔에 주소가 출력됩니다)
+*   **HTTPS인 이유**: 브라우저의 화면 공유 기능은 HTTPS에서만 동작합니다. HTTPS로 서빙해야 서버 PC뿐 아니라 **다른 PC도 호스트(화면 공유)** 를 할 수 있습니다.
+*   첫 실행 시 자체 서명 인증서가 `.certs/`에 자동 생성됩니다. 처음 접속하면 브라우저에 "안전하지 않음" 경고가 나오는데, **고급 → 계속 진행**을 누르면 됩니다. 경고 없이 쓰고 싶다면 [mkcert](https://github.com/FiloSottile/mkcert)로 만든 인증서를 `.certs/key.pem`, `.certs/cert.pem`으로 넣으면 그대로 사용합니다.
+
+#### 테스트
+```bash
+npm test
+```
+서버를 빈 포트에 직접 띄워서 HTTPS 서빙, 시그널링(wss) 전달, Host 목록 API, 개인키·`.git` 비노출을 확인합니다. 실행 중인 서버가 없어도 됩니다.
 
 ### 3. Live Server로 실행 (VS Code, 빠른 UI 확인용)
 시그널링 서버 없이 화면(UI)만 빠르게 띄워볼 때 사용합니다. 다른 PC와 연결하려면 2번(로컬 서버) 방식을 권장합니다.

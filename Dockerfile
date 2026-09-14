@@ -10,9 +10,8 @@ RUN npm install
 # 소스 코드 복사
 COPY . .
 
-# 포트 노출 (3000: Web Server, 9000: PeerJS Signaling)
+# 포트 노출 (3000: HTTPS 웹 서버 + PeerJS 시그널링)
 EXPOSE 3000
-EXPOSE 9000
 
 # 서버 시작
 CMD ["npm", "start"]
