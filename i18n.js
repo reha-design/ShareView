@@ -47,7 +47,24 @@ const translations = {
     downloadLink: '💾 {name} 다운로드',
     sharedFile: '파일을 공유했습니다:<br>{link}',
     senderSystem: '시스템',
-    senderMe: '나'
+    senderMe: '나',
+
+    helpBtn: '사용법',
+    helpTitle: '사용법',
+    helpConnectTitle: '접속하기',
+    helpConnect1: '서버 PC는 https://localhost:3000, 다른 PC는 서버 실행 창에 표시된 https://<서버 IP>:3000 으로 접속합니다.',
+    helpConnect2: '처음 접속할 때 "안전하지 않음" 경고가 나오면 "고급" → "계속 진행"을 누르세요.',
+    helpHostTitle: '화면 공유하기 (호스트)',
+    helpHost1: '"내 연결"에 ID를 입력하고 "설정"을 누릅니다. 비워두면 랜덤 ID가 만들어집니다.',
+    helpHost2: '"화면 공유 시작"을 누르고 공유할 화면이나 창을 선택합니다.',
+    helpHost3: '끝낼 때는 "화면 공유 중지"를 누릅니다. 시청자 화면도 함께 종료됩니다.',
+    helpViewerTitle: '화면 보기 (시청자)',
+    helpViewer1: '"접속 가능한 호스트" 목록에서 호스트를 클릭하거나, 호스트 ID를 입력하고 "연결"을 누릅니다.',
+    helpViewer2: '연결되면 전체화면으로 바뀝니다. Esc를 누르면 빠져나옵니다.',
+    helpChatTitle: '채팅 · 파일',
+    helpChat1: '메시지를 입력하고 Enter를 누르면 전송됩니다. 링크는 새 탭에서 열립니다.',
+    helpChat2: '채팅 영역에 파일을 끌어다 놓으면 전송됩니다(최대 500MB). 호스트가 보낸 파일은 모든 시청자에게, 시청자가 보낸 파일은 호스트에게만 전달됩니다.',
+    helpClose: '닫기'
   },
   en: {
     sidebarHideToggle: 'Hide sidebar on fullscreen',
@@ -96,7 +113,24 @@ const translations = {
     downloadLink: '💾 Download {name}',
     sharedFile: 'Shared a file:<br>{link}',
     senderSystem: 'System',
-    senderMe: 'Me'
+    senderMe: 'Me',
+
+    helpBtn: 'Help',
+    helpTitle: 'How to use',
+    helpConnectTitle: 'Connecting',
+    helpConnect1: 'On the server PC open https://localhost:3000; on other PCs open the https://<server IP>:3000 address shown in the server window.',
+    helpConnect2: 'If you see a "Not secure" warning the first time, click "Advanced" → "Proceed".',
+    helpHostTitle: 'Sharing your screen (host)',
+    helpHost1: 'Enter an ID under "My Connection" and click "Set". Leave it blank for a random ID.',
+    helpHost2: 'Click "Start Sharing" and pick the screen or window to share.',
+    helpHost3: 'Click "Stop Sharing" when you are done. Viewers\' screens stop too.',
+    helpViewerTitle: 'Watching a screen (viewer)',
+    helpViewer1: 'Click a host in "Available hosts", or enter the host ID and click "Connect".',
+    helpViewer2: 'The view switches to fullscreen once connected. Press Esc to exit.',
+    helpChatTitle: 'Chat · Files',
+    helpChat1: 'Type a message and press Enter to send. Links open in a new tab.',
+    helpChat2: 'Drop a file onto the chat area to send it (up to 500MB). Files from the host go to all viewers; files from a viewer go to the host only.',
+    helpClose: 'Close'
   }
 };
 

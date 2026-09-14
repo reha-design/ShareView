@@ -69,6 +69,82 @@
       border-bottom: 1px solid var(--border-color);
     }
 
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .help-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      background: #eef2ff;
+      color: var(--primary-color);
+    }
+
+    .help-btn:hover {
+      background: #e0e7ff;
+    }
+
+    /* 사용법 모달 (브라우저 기본 <dialog>) */
+    #help-dialog {
+      width: min(520px, calc(100vw - 32px));
+      border: none;
+      border-radius: 12px;
+      padding: 24px;
+      color: var(--text-color);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    #help-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    #help-dialog h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    #help-dialog h3 {
+      margin: 16px 0 6px;
+      font-size: 14px;
+      color: var(--primary-color);
+    }
+
+    #help-dialog ol,
+    #help-dialog ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #help-dialog ol {
+      list-style: decimal;
+    }
+
+    #help-dialog ul {
+      list-style: disc;
+    }
+
+    /* 참가자 목록용 전역 li 스타일(초록 점, 흰 배경) 해제 */
+    #help-dialog li {
+      display: list-item;
+      padding: 0;
+      margin: 0 0 2px;
+      background: none;
+      border: none;
+    }
+
+    #help-dialog li::before {
+      content: none;
+    }
+
+    #help-dialog form {
+      margin-top: 20px;
+      text-align: right;
+    }
+
     .participant-section {
       flex: 1;
       padding: 20px;
@@ -301,7 +377,10 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <h1 class="logo">📡 ShareView</h1>
+      <div class="header-row">
+        <h1 class="logo">📡 ShareView</h1>
+        <button class="help-btn" onclick="document.getElementById('help-dialog').showModal()" data-i18n="helpBtn">사용법</button>
+      </div>
       <div class="sidebar-toggle-row">
         <input type="checkbox" id="hide-sidebar-toggle" checked onchange="toggleHideSidebarOnFullscreen(this.checked)">
         <label for="hide-sidebar-toggle" data-i18n="sidebarHideToggle">전체화면 시 사이드바 숨기기</label>
@@ -391,6 +470,40 @@
       ⛶ Fullscreen
     </button>
   </div>
+
+  <!-- 사용법 모달 (첫 방문 시 자동 표시, 이후 헤더의 "사용법" 버튼으로 열기) -->
+  <dialog id="help-dialog">
+    <h2 data-i18n="helpTitle">사용법</h2>
+
+    <h3 data-i18n="helpConnectTitle">접속하기</h3>
+    <ul>
+      <li data-i18n="helpConnect1"></li>
+      <li data-i18n="helpConnect2"></li>
+    </ul>
+
+    <h3 data-i18n="helpHostTitle">화면 공유하기 (호스트)</h3>
+    <ol>
+      <li data-i18n="helpHost1"></li>
+      <li data-i18n="helpHost2"></li>
+      <li data-i18n="helpHost3"></li>
+    </ol>
+
+    <h3 data-i18n="helpViewerTitle">화면 보기 (시청자)</h3>
+    <ol>
+      <li data-i18n="helpViewer1"></li>
+      <li data-i18n="helpViewer2"></li>
+    </ol>
+
+    <h3 data-i18n="helpChatTitle">채팅 · 파일</h3>
+    <ul>
+      <li data-i18n="helpChat1"></li>
+      <li data-i18n="helpChat2"></li>
+    </ul>
+
+    <form method="dialog">
+      <button class="btn-primary" data-i18n="helpClose">닫기</button>
+    </form>
+  </dialog>
 
   <!-- PeerJS Library (로컬 서빙 - 외부 CDN 의존 제거) -->
   <script src="vendor/peerjs/peerjs.min.js"></script>

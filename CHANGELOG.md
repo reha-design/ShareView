@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-15 (4차)
+
+### Added
+- 사용법 모달 — 첫 방문 시 자동 표시, 이후 사이드바 상단 "사용법" 버튼으로 열기 (한국어/영어). 보고서: [patch_feature_help_modal.md](markdown/Report/patch_feature_help_modal.md)
+
 ## 2026-09-15 (3차)
 
 ### Added

@@ -330,6 +330,12 @@ function applySidebarVisibility() {
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('hide-sidebar-toggle');
     if (toggle) toggle.checked = hideSidebarOnFullscreen;
+
+    // 첫 방문 때만 사용법 모달 자동 표시
+    if (!localStorage.getItem('helpSeen')) {
+        localStorage.setItem('helpSeen', '1');
+        document.getElementById('help-dialog').showModal();
+    }
 });
 
 // 전체화면 상태 감지 (Esc키로 나갔을 때도 버튼 숨기기 위함)
