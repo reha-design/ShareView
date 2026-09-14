@@ -112,6 +112,7 @@
       cursor: pointer;
       transition: all 0.2s;
       font-size: 14px;
+      white-space: nowrap;
     }
 
     .btn-primary {
@@ -297,57 +298,68 @@
       <h1 class="logo">📡 ShareView</h1>
       <div class="sidebar-toggle-row">
         <input type="checkbox" id="hide-sidebar-toggle" checked onchange="toggleHideSidebarOnFullscreen(this.checked)">
-        <label for="hide-sidebar-toggle">전체화면 시 사이드바 숨기기</label>
+        <label for="hide-sidebar-toggle" data-i18n="sidebarHideToggle">전체화면 시 사이드바 숨기기</label>
+      </div>
+      <div class="sidebar-toggle-row">
+        <label for="lang-select" data-i18n="langLabel">언어</label>
+        <select id="lang-select" style="font-size: 12px; padding: 2px 4px;">
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+        </select>
       </div>
     </div>
 
     <div class="control-panel">
-      <h4>My Connection</h4>
+      <h4 data-i18n="myConnection">My Connection</h4>
       <div class="input-group">
-        <input type="text" id="custom-id-input" placeholder="Enter My ID (Optional)">
-        <button class="btn-primary" onclick="initializePeer()">Set</button>
+        <input type="text" id="custom-id-input" placeholder="Enter My ID (Optional)" data-i18n-placeholder="placeholderMyId">
+        <button class="btn-primary" onclick="initializePeer()" data-i18n="setBtn">Set</button>
       </div>
       <div style="margin-bottom: 15px; font-size: 13px;">
         ID: <span id="my-id" class="status-badge">Not Set</span>
       </div>
 
-      <h4>Host Controls</h4>
-      <button id="start-share-btn" class="btn-primary" onclick="startScreenShare()" disabled style="width: 100%;">
-        🎥 Start Sharing (with Audio)
+      <h4 data-i18n="hostControls">Host Controls</h4>
+      <button id="start-share-btn" class="btn-primary" onclick="startScreenShare()" disabled style="width: 100%;" data-i18n="startSharingBtn">
+        Start Sharing (with Audio)
       </button>
 
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
 
-      <h4>Join Session</h4>
+      <h4 data-i18n="joinSession">Join Session</h4>
       <div class="input-group">
-        <input type="text" id="friend-id" placeholder="Enter Host ID">
-        <button class="btn-secondary" onclick="connectToPeer()">Connect</button>
+        <input type="text" id="friend-id" placeholder="Enter Host ID" data-i18n-placeholder="placeholderHostId">
+        <button class="btn-secondary" onclick="connectToPeer()" data-i18n="connectBtn">Connect</button>
       </div>
+      <div style="font-size: 12px; color: #6b7280; margin: 10px 0 6px;" data-i18n="availableHosts">Available hosts</div>
+      <ul id="host-list">
+        <li style="color: #9ca3af; background: none; padding-left: 0;" data-i18n="noHostsFound">No hosts sharing right now</li>
+      </ul>
     </div>
 
     <div class="participant-section">
-      <h4>Participants</h4>
+      <h4 data-i18n="participants">Participants</h4>
       <ul id="participant-list">
         <!-- Participants will be added here -->
-        <li style="color: #9ca3af; background: none; padding-left: 0;">Waiting for connections...</li>
+        <li style="color: #9ca3af; background: none; padding-left: 0;" data-i18n="waitingConnections">Waiting for connections...</li>
       </ul>
     </div>
 
     <div class="chat-section">
       <div style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); background: white;">
-        <h4>Chat</h4>
+        <h4 data-i18n="chat">Chat</h4>
       </div>
       <div id="drop-zone" class="drop-zone-overlay">
-        <div class="drop-message">📂 Drop files to share</div>
+        <div class="drop-message" data-i18n="dropMessage">📂 Drop files to share</div>
       </div>
       <div id="chat-messages">
         <!-- Chat messages -->
-        <div style="color: #9ca3af; text-align: center; margin-top: 20px;">No messages yet</div>
+        <div style="color: #9ca3af; text-align: center; margin-top: 20px;" data-i18n="noMessagesYet">No messages yet</div>
       </div>
       <div class="chat-input-area">
-        <input type="text" id="chat-input" placeholder="Type a message..."
+        <input type="text" id="chat-input" placeholder="Type a message..." data-i18n-placeholder="placeholderChat"
           onkeypress="if(event.key==='Enter') sendChatMessage()">
-        <button class="btn-primary" onclick="sendChatMessage()">Send</button>
+        <button class="btn-primary" onclick="sendChatMessage()" data-i18n="sendBtn">Send</button>
       </div>
     </div>
   </div>
@@ -356,25 +368,27 @@
   <div class="main-content">
     <div id="video-container">
       <video id="screen-preview" autoplay playsinline></video>
-      <button id="exit-fullscreen-btn" onclick="toggleFullScreen()" style="display: none;">❌ Exit Fullscreen</button>
+      <button id="exit-fullscreen-btn" onclick="toggleFullScreen()" style="display: none;" data-i18n="exitFullscreen">❌ Exit Fullscreen</button>
 
       <!-- Placeholder when no video -->
       <div id="no-video-placeholder"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #4b5563; pointer-events: none;">
-        <h2 style="margin-bottom: 10px;">Ready to Connect</h2>
-        <p>Set your ID and start sharing, or connect to a host.</p>
+        <h2 style="margin-bottom: 10px;" data-i18n="readyToConnect">Ready to Connect</h2>
+        <p data-i18n="readyToConnectDesc">Set your ID and start sharing, or connect to a host.</p>
       </div>
     </div>
 
     <!-- Fullscreen Toggle Button (Floating) -->
     <button onclick="toggleFullScreen()"
-      style="position: absolute; bottom: 20px; right: 20px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);">
+      style="position: absolute; bottom: 20px; right: 20px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);" data-i18n="fullscreenBtn">
       ⛶ Fullscreen
     </button>
   </div>
 
   <!-- PeerJS Library (로컬 서빙 - 외부 CDN 의존 제거) -->
   <script src="vendor/peerjs/peerjs.min.js"></script>
+  <!-- i18n (한국어 기본 / 영어) -->
+  <script src="i18n.js"></script>
   <!-- App Logic -->
   <script src="screenShare.js"></script>
 </body>

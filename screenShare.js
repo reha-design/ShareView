@@ -13,12 +13,12 @@ function initializePeer() {
     // 이미 연결된 상태라면 -> 기존 연결 끊고 재연결 허용 (ID 변경 목적)
     if (peer) {
         if (!peer.disconnected && !peer.destroyed) {
-            const confirmChange = confirm("이미 ID가 설정되어 있습니다. 새로운 ID로 변경하시겠습니까?");
+            const confirmChange = confirm(t('confirmChangeId'));
             if (!confirmChange) return;
 
             peer.destroy(); // 기존 연결 완전히 종료
             peer = null;
-            document.getElementById('my-id').innerText = "변경 중...";
+            document.getElementById('my-id').innerText = t('idChanging');
             document.getElementById('start-share-btn').disabled = true;
         }
     }
@@ -63,7 +63,7 @@ function initializePeer() {
         customIdInput.value = ''; // 입력창 비움
 
         if (customId) {
-            alert(`ID 설정 완료: ${id}`);
+            alert(t('idSetComplete', { id }));
         }
     });
 
@@ -91,7 +91,7 @@ function initializePeer() {
             updateParticipantList();
 
             // 접속 환영 메시지 전송
-            conn.send({ type: 'chat', sender: 'System', message: 'Welcome to the session!' });
+            conn.send({ type: 'chat', sender: 'System', message: t('welcomeMessage') });
         });
 
         conn.on('data', (data) => {
@@ -110,12 +110,12 @@ function initializePeer() {
         console.error('PeerJS Error:', err);
 
         if (err.type === 'unavailable-id') {
-            alert("이미 사용 중인 ID입니다. 다른 ID를 입력해주세요.");
+            alert(t('idUnavailable'));
             // Peer 객체가 유효하지 않으므로 null 처리 (재시도 위해)
             peer = null;
-            document.getElementById('my-id').innerText = "ID 오류";
+            document.getElementById('my-id').innerText = t('idError');
         } else {
-            alert('연결 에러 발생: ' + err.type);
+            alert(t('peerErrorGeneric', { type: err.type }));
         }
     });
 }
@@ -137,7 +137,7 @@ async function startScreenShare() {
 
         // Secure Context 체크
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-            alert("화면 공유 기능을 사용할 수 없습니다.\n\n원인: 보안 컨텍스트(HTTPS 또는 localhost)가 아닐 가능성이 높습니다.\n해결: http://localhost:3000 으로 접속했는지 확인해주세요.");
+            alert(t('displayMediaUnsupported'));
             console.error("navigator.mediaDevices.getDisplayMedia is not defined. Ensure you are using HTTPS or localhost.");
             return;
         }
@@ -152,6 +152,7 @@ async function startScreenShare() {
         videoElement.srcObject = localStream;
         videoElement.muted = true; // 내 화면은 소리 끔
         updateVideoPlaceholder();
+        registerAsHost();
 
         // 화면 공유 중지 시 처리
         localStream.getVideoTracks()[0].onended = () => {
@@ -159,6 +160,7 @@ async function startScreenShare() {
             videoElement.srcObject = null;
             localStream = null;
             updateVideoPlaceholder();
+            unregisterAsHost();
             // 필요하다면 모든 연결 끊기 로직 추가 가능
         };
 
@@ -173,7 +175,7 @@ async function startScreenShare() {
 function connectToPeer() {
     const friendId = document.getElementById('friend-id').value;
     if (!friendId) {
-        alert("친구의 ID를 입력해주세요.");
+        alert(t('enterFriendId'));
         return;
     }
 
@@ -202,7 +204,7 @@ function connectToPeer() {
 
     if (!call) {
         console.error("Failed to initiate call. 'call' object is undefined.");
-        alert("연결 시도에 실패했습니다. PeerJS 상태를 확인해주세요.");
+        alert(t('callFailed'));
         return;
     }
 
@@ -227,7 +229,7 @@ function connectToPeer() {
 
     call.on('error', (err) => {
         console.error("Call error:", err);
-        alert("연결 중 오류가 발생했습니다.");
+        alert(t('callError'));
     });
 
     // 데이터 채널 연결 (채팅/참여자용)
@@ -258,7 +260,7 @@ function toggleFullScreen() {
         document.documentElement.requestFullscreen().then(() => {
             exitBtn.style.display = 'block'; // 전체화면 때 버튼 보이기
         }).catch(err => {
-            alert(`전체화면 모드 전환 실패: ${err.message}`);
+            alert(t('fullscreenFailed', { msg: err.message }));
         });
     } else {
         document.exitFullscreen().then(() => {
@@ -295,6 +297,65 @@ document.addEventListener('fullscreenchange', () => {
         exitBtn.style.display = 'block';
     }
     applySidebarVisibility();
+});
+
+// 3-2. 같은 네트워크의 Host 목록 (서버에 등록/조회하여 ID 직접 입력 없이 선택 연결)
+
+function registerAsHost() {
+    if (!peer || !peer.id) return;
+    fetch('/api/hosts/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: peer.id })
+    }).catch(err => console.warn('Host 등록 실패:', err));
+}
+
+function unregisterAsHost() {
+    if (!peer || !peer.id) return;
+    fetch('/api/hosts/unregister', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: peer.id })
+    }).catch(err => console.warn('Host 등록 해제 실패:', err));
+}
+
+async function refreshHostList() {
+    const listEl = document.getElementById('host-list');
+    if (!listEl) return;
+
+    try {
+        const res = await fetch('/api/hosts');
+        const hosts = (await res.json()).filter(id => !peer || id !== peer.id);
+
+        listEl.innerHTML = '';
+        if (hosts.length === 0) {
+            const li = document.createElement('li');
+            li.style.cssText = 'color:#9ca3af;background:none;padding-left:0;';
+            li.setAttribute('data-i18n', 'noHostsFound');
+            li.textContent = t('noHostsFound');
+            listEl.appendChild(li);
+            return;
+        }
+
+        hosts.forEach(id => {
+            const li = document.createElement('li');
+            li.textContent = id;
+            li.style.cursor = 'pointer';
+            li.title = t('clickToConnect');
+            li.onclick = () => {
+                document.getElementById('friend-id').value = id;
+                connectToPeer();
+            };
+            listEl.appendChild(li);
+        });
+    } catch (err) {
+        console.warn('Host 목록 조회 실패:', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    refreshHostList();
+    setInterval(refreshHostList, 4000);
 });
 
 // 4. Data Channel Logic (Chat & Participants)
@@ -357,8 +418,9 @@ function appendChatMessage(sender, message) {
     const chatBox = document.getElementById('chat-messages');
     if (!chatBox) return; // UI 아직 없으면 무시
 
+    const displaySender = sender === 'System' ? t('senderSystem') : sender === 'Me' ? t('senderMe') : sender;
     const div = document.createElement('div');
-    div.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    div.innerHTML = `<strong>${displaySender}:</strong> ${message}`;
     div.style.marginBottom = "5px";
     div.style.fontSize = "13px";
     chatBox.appendChild(div);
@@ -421,7 +483,7 @@ const CHUNK_SIZE = 16384; // 16KB
 
 async function sendFile(file) {
     const myId = peer ? peer.id : 'Me';
-    appendChatMessage('System', `Sending file: ${file.name} (${formatBytes(file.size)})...`);
+    appendChatMessage('System', t('sendingFile', { name: file.name, size: formatBytes(file.size) }));
 
     // 1. Send File Metadata
     const metaData = {
@@ -463,7 +525,7 @@ async function sendFile(file) {
     };
     broadcastOrSend(endData);
 
-    appendChatMessage('System', `File sent successfully.`);
+    appendChatMessage('System', t('fileSentSuccess'));
 }
 
 function broadcastOrSend(data) {
@@ -485,7 +547,7 @@ function handleFileStart(sender, meta) {
         chunks: [],
         receivedSize: 0
     };
-    appendChatMessage(sender, `Started sharing file: <strong>${meta.name}</strong>`);
+    appendChatMessage(sender, t('startedSharingFile', { name: meta.name }));
 }
 
 function handleFileChunk(sender, buffer) {
@@ -503,9 +565,9 @@ function handleFileEnd(sender) {
     const blob = new Blob(context.chunks, { type: context.meta.type });
     const url = URL.createObjectURL(blob);
 
-    const downloadLink = `<a href="${url}" download="${context.meta.name}" style="color: #4f46e5; text-decoration: underline;">💾 Download ${context.meta.name}</a> (${formatBytes(context.meta.size)})`;
+    const downloadLink = `<a href="${url}" download="${context.meta.name}" style="color: #4f46e5; text-decoration: underline;">${t('downloadLink', { name: context.meta.name })}</a> (${formatBytes(context.meta.size)})`;
 
-    appendChatMessage(sender, `Shared a file:<br>${downloadLink}`);
+    appendChatMessage(sender, t('sharedFile', { link: downloadLink }));
 
     // Clean up
     delete receivedBuffers[sender];
