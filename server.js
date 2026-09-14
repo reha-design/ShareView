@@ -7,7 +7,7 @@ const app = express();
 const port = 3000;
 
 // 1. 정적 파일 호스팅 (웹 서버 역할)
-// 현재 디렉토리의 파일들을 그대로 서빙합니다.
+// 현재 디렉토리의 파일들을 그대로 서빙합니다. (vendor/peerjs 포함)
 app.use(express.static(path.join(__dirname)));
 
 // 2. HTTP 서버 생성
