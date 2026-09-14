@@ -122,6 +122,14 @@ function initializePeer() {
 
 setupDragAndDrop();
 
+// 화면 영상 유무에 따라 "Ready to Connect" 안내 문구 표시/숨김
+function updateVideoPlaceholder() {
+    const videoElement = document.getElementById('screen-preview');
+    const placeholder = document.getElementById('no-video-placeholder');
+    if (!placeholder) return;
+    placeholder.style.display = (videoElement && videoElement.srcObject) ? 'none' : 'block';
+}
+
 // 1. Host: 화면 공유 시작 함수
 async function startScreenShare() {
     try {
@@ -143,12 +151,14 @@ async function startScreenShare() {
         // 내 화면 미리보기
         videoElement.srcObject = localStream;
         videoElement.muted = true; // 내 화면은 소리 끔
+        updateVideoPlaceholder();
 
         // 화면 공유 중지 시 처리
         localStream.getVideoTracks()[0].onended = () => {
             console.log('화면 공유가 중단되었습니다.');
             videoElement.srcObject = null;
             localStream = null;
+            updateVideoPlaceholder();
             // 필요하다면 모든 연결 끊기 로직 추가 가능
         };
 
@@ -171,10 +181,9 @@ function connectToPeer() {
 
     // 연결 시도 시 바로 전체화면으로 진입 (브라우저 정책상 사용자 클릭 시점에 요청해야 함)
     // 스트림이 아직 안 왔더라도 검은 화면(또는 로딩)으로 전체화면 진입
-    const videoContainer = document.getElementById('video-container');
     const exitBtn = document.getElementById('exit-fullscreen-btn');
     if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().then(() => {
+        document.documentElement.requestFullscreen().then(() => {
             exitBtn.style.display = 'block';
         }).catch(err => {
             console.warn("Auto-fullscreen failed:", err);
@@ -203,11 +212,13 @@ function connectToPeer() {
         videoElement.srcObject = remoteStream;
         videoElement.muted = false; // 상대방 소리는 들어야 함
         videoElement.play().catch(e => console.error("Autoplay failed:", e));
+        updateVideoPlaceholder();
     });
 
     call.on('close', () => {
         console.log("연결이 종료되었습니다.");
         document.getElementById('screen-preview').srcObject = null;
+        updateVideoPlaceholder();
         // 연결 끊기면 전체화면도 나가기
         if (document.fullscreenElement) {
             document.exitFullscreen();
@@ -240,13 +251,11 @@ function connectToPeer() {
 
 // 3. Utils: 전체화면 토글
 function toggleFullScreen() {
-    const videoContainer = document.getElementById('video-container');
     const exitBtn = document.getElementById('exit-fullscreen-btn');
-    // const videoElement = document.getElementById('screen-preview'); 
-    // 스트림 유무와 상관없이 UI 컨테이너를 전체화면 처리할 수 있도록 제한 해제
+    // 사이드바 숨김 토글이 페이지 전체를 대상으로 동작하도록 documentElement를 전체화면 처리
 
     if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().then(() => {
+        document.documentElement.requestFullscreen().then(() => {
             exitBtn.style.display = 'block'; // 전체화면 때 버튼 보이기
         }).catch(err => {
             alert(`전체화면 모드 전환 실패: ${err.message}`);
@@ -258,6 +267,25 @@ function toggleFullScreen() {
     }
 }
 
+// 3-1. 전체화면 시 사이드바 자동 숨김 (on/off 토글)
+let hideSidebarOnFullscreen = (localStorage.getItem('hideSidebarOnFullscreen') ?? 'true') === 'true';
+
+function toggleHideSidebarOnFullscreen(checked) {
+    hideSidebarOnFullscreen = checked;
+    localStorage.setItem('hideSidebarOnFullscreen', checked);
+    applySidebarVisibility();
+}
+
+function applySidebarVisibility() {
+    document.body.classList.toggle('hide-sidebar-fs', !!document.fullscreenElement && hideSidebarOnFullscreen);
+}
+
+// 저장된 토글 상태를 체크박스에 반영
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('hide-sidebar-toggle');
+    if (toggle) toggle.checked = hideSidebarOnFullscreen;
+});
+
 // 전체화면 상태 감지 (Esc키로 나갔을 때도 버튼 숨기기 위함)
 document.addEventListener('fullscreenchange', () => {
     const exitBtn = document.getElementById('exit-fullscreen-btn');
@@ -266,6 +294,7 @@ document.addEventListener('fullscreenchange', () => {
     } else {
         exitBtn.style.display = 'block';
     }
+    applySidebarVisibility();
 });
 
 // 4. Data Channel Logic (Chat & Participants)

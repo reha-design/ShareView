@@ -213,6 +213,28 @@
       border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
+    /* 전체화면 진입 시 사이드바 숨김 (토글 ON일 때만 body에 붙는 클래스) */
+    body.hide-sidebar-fs .sidebar {
+      display: none;
+    }
+
+    .sidebar-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .sidebar-toggle-row input {
+      cursor: pointer;
+    }
+
+    .sidebar-toggle-row label {
+      cursor: pointer;
+    }
+
     /* Status Badge */
     .status-badge {
       display: inline-block;
@@ -273,6 +295,10 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h1 class="logo">📡 ShareView</h1>
+      <div class="sidebar-toggle-row">
+        <input type="checkbox" id="hide-sidebar-toggle" checked onchange="toggleHideSidebarOnFullscreen(this.checked)">
+        <label for="hide-sidebar-toggle">전체화면 시 사이드바 숨기기</label>
+      </div>
     </div>
 
     <div class="control-panel">
@@ -333,7 +359,7 @@
       <button id="exit-fullscreen-btn" onclick="toggleFullScreen()" style="display: none;">❌ Exit Fullscreen</button>
 
       <!-- Placeholder when no video -->
-      <div
+      <div id="no-video-placeholder"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #4b5563; pointer-events: none;">
         <h2 style="margin-bottom: 10px;">Ready to Connect</h2>
         <p>Set your ID and start sharing, or connect to a host.</p>
