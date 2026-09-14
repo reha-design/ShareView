@@ -418,6 +418,7 @@ function handleIncomingData(data, fromPeer) {
     } else if (data.type === 'participants' && Array.isArray(data.list)) {
         renderParticipants(data.list);
     } else if (data.type === 'file-start') {
+        // ponytail: 파일은 채팅과 달리 Host가 다른 Viewer에게 중계하지 않음 (Viewer가 보낸 파일은 Host만 받음). 중계 기능은 개발 예정 — CHANGELOG "개발 예정" 참고
         handleFileStart(data.sender, data.meta);
     } else if (data.type === 'file-chunk') {
         handleFileChunk(data.sender, data.payload);
